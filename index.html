@@ -247,6 +247,10 @@
       <label for="manualMeta">Deskripsi / tag video <span style="text-transform:none;letter-spacing:0;color:var(--mut-2)">— opsional, tanpa perlu API key</span></label>
       <textarea id="manualMeta" style="min-height:90px" placeholder="Tempel deskripsi & tag video di sini untuk tebakan jauh lebih kaya. Makin banyak teks, makin akurat. Lalu tekan 'Scan gaya' di atas."></textarea>
 
+      <label for="importJson">Impor analisa audio <span style="text-transform:none;letter-spacing:0;color:var(--mut-2)">— file style.json dari analyze.py (BPM, key, energy)</span></label>
+      <input type="file" id="importJson" accept=".json,application/json" style="padding:9px 12px">
+      <p class="muted" style="margin-top:6px">Mau detail dari <i>suara</i> asli (tempo, nada, dinamika)? Jalankan <code style="background:var(--rack-2);border:1px solid var(--line);border-radius:4px;padding:1px 5px">python analyze.py "URL"</code> lokal, lalu impor <code style="background:var(--rack-2);border:1px solid var(--line);border-radius:4px;padding:1px 5px">style.json</code> di sini. Lihat <a href="https://github.com/nothinx/suno-prompt-generator#analisis-audio-opsional" target="_blank" rel="noopener">panduan</a>.</p>
+
       <details>
         <summary>Cara dapat YouTube Data API key (gratis, ±5 menit)</summary>
         <ol class="guide">
@@ -646,6 +650,29 @@ document.getElementById("fetchBtn").onclick=async ()=>{
   st.className = n ? "status ok" : "status warn";
   st.textContent = msg;
 };
+document.getElementById("importJson").addEventListener("change",e=>{
+  const f=e.target.files&&e.target.files[0]; const st=document.getElementById("ytStatus");
+  if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const data=JSON.parse(rd.result);
+      const sty=data.style||{}; let added=0;
+      for(const dim in sty){
+        const arr=Array.isArray(sty[dim])?sty[dim]:[];
+        const target=style[dim]?dim:"custom"; // dimensi tak dikenal -> Lainnya
+        arr.forEach(v=>{ if(v){ style[target].add(String(v)); added++; } });
+      }
+      sourceScanned=true; renderChips(); renderOutput();
+      st.className="status ok";
+      st.textContent=`✓ Impor ${added} deskriptor dari analisa audio${data.title?` — "${data.title}"`:""}.`;
+    }catch(err){
+      st.className="status err"; st.textContent="File JSON tidak valid: "+err.message;
+    }
+  };
+  rd.readAsText(f);
+  e.target.value=""; // boleh impor file sama lagi
+});
 document.getElementById("addTag").onclick=()=>{
   const i=document.getElementById("customTag"); const v=i.value.trim();
   if(v){style.custom.add(v); i.value=""; renderChips(); renderOutput();}

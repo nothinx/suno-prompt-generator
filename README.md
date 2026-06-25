@@ -21,9 +21,20 @@ Tanpa key, tool hanya membaca judul + channel (cukup untuk tebakan dasar). Tamba
 
 Cukup buka `index.html` di browser. Tidak ada langkah lain.
 
-## Catatan
+## Analisis audio (opsional)
 
-Browser tidak bisa membaca audio, jadi gaya ditebak dari **teks metadata**, bukan suara — kualitas tebakan mengikuti kualitas judul/deskripsi video.
+Browser tidak bisa mendengar audio, jadi gaya web ditebak dari **teks**. Untuk detail dari **suara asli** (tempo/BPM, key/nada, energy, kecerahan), ada `analyze.py` — jalan lokal, terpisah dari situs.
+
+```bash
+pip install -r requirements.txt     # juga butuh ffmpeg di PATH
+python analyze.py "https://youtu.be/..."     # -> style.json
+python analyze.py lagu.mp3                    # file lokal
+python analyze.py --selftest                  # uji logika murni (tanpa deps)
+```
+
+Lalu di web buka **01 Source → Impor analisa audio**, pilih `style.json` → deskriptor (mis. `122 BPM`, `upbeat tempo`, `key A minor`, `energetic`, `bright production`) masuk otomatis.
+
+> Catatan: tanpa `analyze.py`, gaya tetap ditebak dari teks metadata — kualitasnya mengikuti judul/deskripsi video.
 
 ## Lisensi
 
