@@ -1,41 +1,71 @@
 # Suno Prompt Console
 
-Ubah **satu link YouTube** + **satu puisi mentah** menjadi prompt **[Suno AI](https://suno.com)** siap pakai: deskriptor *Style of Music* + *Lyrics* bertag (`[Verse]`, `[Chorus]`, `[Bridge]`).
+Punya lagu di YouTube yang vibe-nya pengen kamu tiru, dan secarik puisi yang
+pengen kamu jadikan lagu? Tool ini menjembatani keduanya: dari link YouTube ia
+menebak gaya musiknya, dari puisimu ia merangkai lirik bertag, lalu menyodorkan
+dua kolom yang tinggal kamu tempel ke [Suno](https://suno.com) — *Style of Music*
+dan *Lyrics*.
 
-**▶ Live:** https://nothinx.github.io/suno-prompt-generator/
+**Coba langsung:** https://nothinx.github.io/suno-prompt-generator/
 
-Satu file HTML, zero-install, 100% jalan di browser. Tidak ada server, tidak ada build step, tidak ada dependency.
+Tidak ada yang perlu dipasang. Satu berkas `index.html`, semuanya jalan di
+browser, dan tidak ada yang dikirim ke mana pun selain ke YouTube saat menebak
+judul lagu.
 
-## Cara pakai
+## Alurnya
 
-1. **Source** — tempel link YouTube lagu referensi → tool menebak gaya (genre, mood, vokal, instrumen, era, produksi) dari metadata.
-2. **Style** — edit deskriptor: hapus, tambah dari palet, atau ketik sendiri.
-3. **Lyrics** — tempel puisi mentah (pisahkan bait dengan baris kosong) → auto-struktur jadi lirik bertag Suno. Bait berulang otomatis jadi `[Chorus]`.
-4. **Prompt** — salin *Style of Music* + *Lyrics* langsung ke Suno.
+Empat langkah, dari kiri ke kanan seperti rantai sinyal:
 
-### Mode komprehensif (opsional)
+1. **Source** — tempel link YouTube. Tool membaca metadata lagu dan menebak
+   genre, mood, vokal, instrumen, era, sampai karakter produksinya.
+2. **Style** — hasil tebakan muncul sebagai tag. Buang yang meleset, tambah dari
+   palet, atau ketik sendiri. Ini punyamu untuk diutak-atik.
+3. **Lyrics** — tempel puisi mentah, pisahkan tiap bait dengan baris kosong.
+   Tool memberinya tag Suno; bait yang berulang otomatis jadi `[Chorus]`.
+4. **Prompt** — salin, tempel ke Suno, selesai.
 
-Tanpa key, tool hanya membaca judul + channel (cukup untuk tebakan dasar). Tambahkan [YouTube Data API v3 key](https://console.cloud.google.com/apis/library/youtube.googleapis.com) gratis untuk membaca deskripsi & tags → ekstraksi gaya jauh lebih kaya. Key disimpan lokal di browser saja.
+## Soal tebakan gaya
 
-## Jalankan lokal
+Jujur saja: kualitas tebakan mengikuti seberapa kaya teks yang tersedia. Tanpa
+apa-apa, YouTube cuma memberi judul dan nama channel — sering kali itu hanya
+cukup untuk satu-dua tag. Ada dua cara membuatnya jauh lebih akurat:
 
-Cukup buka `index.html` di browser. Tidak ada langkah lain.
+- **Tempel deskripsi videonya.** Buka video, salin deskripsinya (yang di balik
+  tombol "...Selengkapnya"), tempel di kotak yang tersedia. Cara paling cepat,
+  tanpa setup apa pun. Dari judul saja biasanya dapat satu tag; ditambah
+  deskripsi bisa belasan.
+- **Pakai API key.** Dengan [YouTube Data API v3](https://console.cloud.google.com/apis/library/youtube.googleapis.com)
+  (gratis), tool ikut membaca deskripsi, tags, dan kategori genre resmi secara
+  otomatis. Panduan langkah demi langkahnya ada langsung di dalam aplikasi.
+  Key-nya disimpan di browsermu sendiri, bukan di server mana pun.
 
-## Analisis audio (opsional)
+## Menebak dari suaranya, bukan teksnya
 
-Browser tidak bisa mendengar audio, jadi gaya web ditebak dari **teks**. Untuk detail dari **suara asli** (tempo/BPM, key/nada, energy, kecerahan), ada `analyze.py` — jalan lokal, terpisah dari situs.
+Browser tidak bisa mendengar. Jadi kalau kamu mau detail yang hanya bisa
+diketahui dari audio asli — tempo, nada dasar, dinamika, terang-gelapnya
+mix — ada `analyze.py` yang jalan di komputermu sendiri:
 
 ```bash
-pip install -r requirements.txt     # juga butuh ffmpeg di PATH
-python analyze.py "https://youtu.be/..."     # -> style.json
-python analyze.py lagu.mp3                    # file lokal
-python analyze.py --selftest                  # uji logika murni (tanpa deps)
+pip install -r requirements.txt          # butuh ffmpeg di PATH juga
+python analyze.py "https://youtu.be/..."  # menghasilkan style.json
+python analyze.py lagu.mp3                 # atau dari berkas lokal
 ```
 
-Lalu di web buka **01 Source → Impor analisa audio**, pilih `style.json` → deskriptor (mis. `122 BPM`, `upbeat tempo`, `key A minor`, `energetic`, `bright production`) masuk otomatis.
+Script-nya mengunduh audio (yt-dlp) dan mengukur fiturnya (librosa), lalu
+menulis `style.json`. Balik ke web, buka **Source → Impor analisa audio**, pilih
+berkas itu, dan tag seperti `122 BPM`, `key A minor`, atau `bright production`
+langsung masuk.
 
-> Catatan: tanpa `analyze.py`, gaya tetap ditebak dari teks metadata — kualitasnya mengikuti judul/deskripsi video.
+Mau cek logikanya tanpa memasang apa-apa? `python analyze.py --selftest`.
+
+## Menjalankan sendiri
+
+Klon repo ini lalu buka `index.html` di browser. Sungguh, itu saja.
+
+```bash
+git clone https://github.com/nothinx/suno-prompt-generator.git
+```
 
 ## Lisensi
 
-MIT
+MIT — pakai, ubah, sebar sesukamu.
