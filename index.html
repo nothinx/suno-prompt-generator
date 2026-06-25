@@ -240,7 +240,7 @@
         <ol class="guide">
           <li><b>Tempel deskripsi (tanpa API, instan):</b> buka video → klik <b>"…Selengkapnya"</b> pada deskripsi →
             salin teksnya → tempel di kotak bawah <i>sebelum</i> menekan Scan gaya.</li>
-          <li><b>Pakai API key</b> untuk baca deskripsi + tags otomatis — panduan di bawah.</li>
+          <li><b>Pakai API key</b> untuk baca deskripsi + tags + <b>kategori genre resmi</b> otomatis (paling komprehensif) — panduan di bawah.</li>
         </ol>
       </div>
 
@@ -349,6 +349,8 @@ const LEXICON = {
     "lo-?fi":"lo-fi","city ?pop":"city pop","synthwave|retrowave":"synthwave",
     "vaporwave":"vaporwave","\\bedm\\b":"EDM","house":"house music","techno":"techno",
     "trance":"trance","dubstep":"dubstep","drum ?(&|and|n)? ?bass|dnb":"drum and bass",
+    "electronic":"electronic","\\bdance music|dance-?pop":"dance-pop","rhythm and blues":"R&B",
+    "independent music|indie music":"indie",
     "\\bpop\\b":"pop","\\bk-?pop":"k-pop","\\bj-?pop":"j-pop","indie ?pop":"indie pop",
     "rock":"rock","punk":"punk","metal":"metal","grunge":"grunge","emo\\b":"emo",
     "\\bhardcore":"hardcore","post-?rock":"post-rock","shoegaze":"shoegaze",
@@ -367,7 +369,7 @@ const LEXICON = {
     "keroncong":"keroncong","\\bgamelan":"gamelan","jaipong":"jaipongan",
     "\\bpop ?sunda|tembang sunda":"pop sunda","dolanan":"lagu dolanan jawa",
     "\\bpop ?indonesia|lagu indonesia":"pop indonesia","melayu":"pop melayu",
-    "\\bqasidah|gambus|sholawat|nasyid":"religi islami","rohani|kristen|nasrani":"lagu rohani",
+    "\\bqasidah|gambus|sholawat|nasyid":"religi islami","rohani|kristen|nasrani|christian music":"lagu rohani",
     "indie indonesia|indie lokal":"indie indonesia"
   },
   mood: {
@@ -445,14 +447,17 @@ function parseVideoId(url){
 async function fetchYouTube(url, apiKey){
   const id = parseVideoId(url);
   if (apiKey && id){
-    const api = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${id}&key=${encodeURIComponent(apiKey)}`;
+    const api = `https://www.googleapis.com/youtube/v3/videos?part=snippet,topicDetails&id=${id}&key=${encodeURIComponent(apiKey)}`;
     const r = await fetch(api);
     const j = await r.json();
     if (j.error) throw new Error(j.error.message || "API error");
     if (!j.items || !j.items.length) throw new Error("Video tidak ditemukan");
-    const s = j.items[0].snippet;
+    const it = j.items[0], s = it.snippet;
+    // topicCategories = URL Wikipedia genre resmi dari Google, mis. ".../Pop_music"
+    const topics = ((it.topicDetails && it.topicDetails.topicCategories) || [])
+      .map(u=>decodeURIComponent(String(u).split("/").pop().replace(/_/g," "))).join(" ");
     return {title:s.title, author:s.channelTitle, desc:s.description||"",
-      tags:(s.tags||[]).join(" "), rich:true};
+      tags:(s.tags||[]).join(" "), topics, rich:true};
   }
   const oe = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
   const r = await fetch(oe);
@@ -620,7 +625,7 @@ document.getElementById("fetchBtn").onclick=async ()=>{
     try{ meta=await fetchYouTube(url,document.getElementById("apiKey").value.trim()); }
     catch(e){ fetchErr=e; }
   }
-  const blob=[meta&&meta.title,meta&&meta.author,meta&&meta.desc,meta&&meta.tags,manual]
+  const blob=[meta&&meta.title,meta&&meta.author,meta&&meta.desc,meta&&meta.tags,meta&&meta.topics,manual]
     .filter(Boolean).join("  ");
   if(!blob.trim()){
     st.className="status err";
