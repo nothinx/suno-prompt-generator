@@ -167,6 +167,13 @@
     margin-left:8px}
 
   a{color:var(--amber)}
+  .note{background:rgba(255,176,0,.07);border:1px solid rgba(255,176,0,.28);
+    border-radius:9px;padding:11px 13px;margin:12px 0 0;font-size:13px;color:var(--txt);line-height:1.6}
+  .note b{color:var(--amber-soft)}
+  .guide{margin:8px 0 0;padding-left:20px;font-size:13px;color:var(--mut);line-height:1.75}
+  .guide li{margin:4px 0}
+  .guide code{background:var(--rack-2);border:1px solid var(--line);border-radius:4px;
+    padding:1px 5px;font-size:12px;color:var(--amber-soft)}
   .foot{color:var(--mut-2);font-family:var(--mono);font-size:11.5px;text-align:center;
     margin-top:28px;line-height:1.8}
   .foot a{color:var(--mut)}
@@ -226,12 +233,29 @@
         <button class="btn" id="fetchBtn" style="flex:1;min-width:130px">Scan gaya</button>
       </div>
       <div class="status" id="ytStatus" role="status" aria-live="polite"></div>
+
+      <div class="note">
+        <b>Mau deteksi komprehensif?</b> Tanpa API key, YouTube hanya memberi <b>judul + channel</b>
+        — itu sebabnya hasilnya sedikit. Dua cara memperkaya:
+        <ol class="guide">
+          <li><b>Tempel deskripsi (tanpa API, instan):</b> buka video → klik <b>"…Selengkapnya"</b> pada deskripsi →
+            salin teksnya → tempel di kotak bawah <i>sebelum</i> menekan Scan gaya.</li>
+          <li><b>Pakai API key</b> untuk baca deskripsi + tags otomatis — panduan di bawah.</li>
+        </ol>
+      </div>
+
+      <label for="manualMeta">Deskripsi / tag video <span style="text-transform:none;letter-spacing:0;color:var(--mut-2)">— opsional, tanpa perlu API key</span></label>
+      <textarea id="manualMeta" style="min-height:90px" placeholder="Tempel deskripsi & tag video di sini untuk tebakan jauh lebih kaya. Makin banyak teks, makin akurat. Lalu tekan 'Scan gaya' di atas."></textarea>
+
       <details>
-        <summary>Mode komprehensif (opsional) — YouTube Data API key</summary>
-        <p class="muted" style="margin-top:8px">Tanpa key: hanya judul + channel (cukup untuk tebakan dasar).
-          Dengan key gratis dari <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">Google Cloud</a>,
-          tool juga membaca deskripsi, tags & kategori → ekstraksi gaya jauh lebih kaya.
-          Key disimpan lokal di browser Anda saja.</p>
+        <summary>Cara dapat YouTube Data API key (gratis, ±5 menit)</summary>
+        <ol class="guide">
+          <li>Buka <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a>, login, lalu buat / pilih sebuah <b>project</b>.</li>
+          <li>Aktifkan API: buka <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">YouTube Data API v3</a> → klik <b>Enable</b>.</li>
+          <li>Buka <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Credentials</a> → <b>+ Create Credentials → API key</b> → salin key (bentuknya <code>AIza…</code>).</li>
+          <li>Tempel key di bawah → <b>Simpan</b>. Key disimpan lokal di browser Anda saja.</li>
+        </ol>
+        <p class="muted" style="margin-top:8px">Gratis: kuota 10.000 unit/hari (±10.000 lagu). Disarankan: di halaman Credentials, batasi key ke website <code>nothinx.github.io/*</code> dan ke API <b>YouTube Data API v3</b> saja.</p>
         <div class="addrow">
           <input type="password" id="apiKey" placeholder="YouTube Data API v3 key (opsional)" autocomplete="off">
           <button class="btn ghost sm" id="saveKey">Simpan</button>
@@ -358,7 +382,7 @@ const LEXICON = {
     "moody|murung":"moody","ethereal":"ethereal"
   },
   vocal: {
-    "male vocal|vokal pria|penyanyi pria":"male vocals","female vocal|vokal wanita|penyanyi wanita":"female vocals",
+    "\\bmale vocal|vokal pria|penyanyi pria":"male vocals","female vocal|vokal wanita|penyanyi wanita":"female vocals",
     "duet|duo":"duet vocals","choir|paduan suara|koor":"choir","rap vocal":"rap vocals",
     "falsetto":"falsetto","whisper|berbisik":"whispered vocals","spoken ?word":"spoken word",
     "instrumental|tanpa vokal":"instrumental","harmon(y|ies)":"vocal harmonies",
@@ -586,26 +610,36 @@ function renderPalette(){
    ========================================================================= */
 document.getElementById("fetchBtn").onclick=async ()=>{
   const url=document.getElementById("yt").value.trim();
+  const manual=document.getElementById("manualMeta").value.trim();
   const st=document.getElementById("ytStatus");
-  if(!url){st.className="status err";st.textContent="Masukkan link YouTube dulu.";return;}
-  st.className="status warn"; st.textContent="Mengambil data…";
-  try{
-    const key=document.getElementById("apiKey").value.trim();
-    const meta=await fetchYouTube(url,key);
-    const blob=[meta.title,meta.author,meta.desc,meta.tags].join("  ");
-    const found=extractStyle(blob);
-    syncFromSets(found);
-    if(document.getElementById("optLang").checked){
-      style.lang.add(detectLanguage(blob)+" lyrics");
-    }
-    sourceScanned=true;
-    renderChips(); renderOutput();
-    const n=Object.values(found).reduce((a,s)=>a+s.size,0);
-    st.className="status ok";
-    st.textContent=`✓ "${meta.title}" — ${meta.author}. ${n} deskriptor terdeteksi${meta.rich?" (mode komprehensif)":" (mode dasar: judul+channel)"}.`;
-  }catch(e){
-    st.className="status err"; st.textContent="Gagal: "+e.message+" — Anda tetap bisa pilih gaya manual dari palet.";
+  if(!url && !manual){st.className="status err";st.textContent="Masukkan link YouTube, atau tempel deskripsi video di bawah.";return;}
+  st.className="status warn"; st.textContent="Memproses…";
+  // ambil metadata dari link (kalau ada); kegagalan tidak fatal bila ada teks manual
+  let meta=null, fetchErr=null;
+  if(url){
+    try{ meta=await fetchYouTube(url,document.getElementById("apiKey").value.trim()); }
+    catch(e){ fetchErr=e; }
   }
+  const blob=[meta&&meta.title,meta&&meta.author,meta&&meta.desc,meta&&meta.tags,manual]
+    .filter(Boolean).join("  ");
+  if(!blob.trim()){
+    st.className="status err";
+    st.textContent="Gagal: "+(fetchErr?fetchErr.message:"tidak ada teks untuk dianalisa")+" — tempel deskripsi video atau pilih gaya dari palet.";
+    return;
+  }
+  const found=extractStyle(blob);
+  syncFromSets(found);
+  if(document.getElementById("optLang").checked) style.lang.add(detectLanguage(blob)+" lyrics");
+  sourceScanned=true;
+  renderChips(); renderOutput();
+  const n=Object.values(found).reduce((a,s)=>a+s.size,0);
+  const mode = (meta&&meta.rich) ? "komprehensif (API)" : manual ? "manual (deskripsi ditempel)" : "dasar (judul+channel)";
+  const titlePart = (meta&&meta.title) ? `"${meta.title}" — ${meta.author}. ` : "";
+  const warn = fetchErr ? "⚠ link gagal dibaca, pakai teks manual. " : "";
+  let msg = `${warn}✓ ${titlePart}${n} deskriptor terdeteksi · mode ${mode}.`;
+  if(!(meta&&meta.rich) && !manual) msg += " Untuk hasil lebih kaya: tempel deskripsi video atau aktifkan API key.";
+  st.className = n ? "status ok" : "status warn";
+  st.textContent = msg;
 };
 document.getElementById("addTag").onclick=()=>{
   const i=document.getElementById("customTag"); const v=i.value.trim();
